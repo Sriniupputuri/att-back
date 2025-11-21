@@ -12,6 +12,11 @@ const workerSchema = new mongoose.Schema({
     unique: true,
     trim: true
   },
+  ownerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User', // Change the model name if needed
+    required: true
+  },
   workId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Work',

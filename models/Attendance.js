@@ -34,6 +34,11 @@ const attendanceSchema = new mongoose.Schema({
     enum: ['manual', 'qr', 'location'],
     default: 'manual'
   },
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   location: {
     latitude: Number,
     longitude: Number

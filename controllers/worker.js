@@ -39,7 +39,9 @@ export const getAllWorkersByOwner = async (req, res) => {
 export const getWorkers = async (req, res) => {
   try {
     const { workId } = req.query;
-    let query = {};
+    let query = {
+      ownerId: req.user.userId  // <-- Only fetch workers of logged-in user
+    };
 
     if (workId) {
       const work = await Work.findOne({
@@ -78,7 +80,7 @@ export const getWorkers = async (req, res) => {
 
 export const createWorker = async (req, res) => {
   try {
-    const { name, phoneNumber, dailyWage, workId, profileImage } = req.body;
+    const { name, phoneNumber, dailyWage, workId, profileImage, ownerId } = req.body;
 
     // Validate work ownership
     const work = await Work.findOne({
@@ -96,6 +98,7 @@ export const createWorker = async (req, res) => {
       phoneNumber,
       workId,
       dailyWage,
+      ownerId,
       profileImage,
       totalDaysWorked: 0,
       totalEarnings: 0,

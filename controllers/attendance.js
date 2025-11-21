@@ -15,7 +15,7 @@ export const getAllAttendanceByOwner = async (req, res) => {
     const workIds = works.map(work => work._id);
 
     // Get all workers associated with the work IDs
-    const workers = await Worker.find({ workId: { $in: workIds } });
+    const workers = await Worker.find({ workId: { $in: workIds, owner: req.user.userId } });
     const workerIds = workers.map(worker => worker._id);
 
     // Find all attendance records for these workers
@@ -103,7 +103,7 @@ export const markAttendance = async (req, res) => {
       console.log("Processing attendance for workerId:", workerId, "workId:", workId);
 
       // Verify the worker exists and belongs to the work
-      const worker = await Worker.findOne({ _id: workerId, workId });
+      const worker = await Worker.findOne({ _id: workerId, workId, ownerId: req.user.userId });
       if (!worker) {
         attendanceResults.push({
           workerId,
@@ -147,6 +147,7 @@ export const markAttendance = async (req, res) => {
         method,
         location,
         markedBy: req.user.userId,
+        owner: req.user.userId
       });
 
       await attendance.save();
