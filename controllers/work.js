@@ -11,7 +11,7 @@ export const getWorks = async (req, res) => {
     const enrichedWorks = await Promise.all(
       works.map(async (work) => {
         // Find all workers for this work
-        const workers = await Worker.find({ workId: work._id });
+        const workers = await Worker.find({ workId: work._id, ownerId: req.user.userId });
 
         // Calculate total spent by summing up workers' total earnings
         const totalSpent = workers.reduce((sum, worker) => sum + worker.totalEarnings, 0);
