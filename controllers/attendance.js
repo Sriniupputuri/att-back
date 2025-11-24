@@ -4,6 +4,8 @@ import Work from '../models/Work.js';
 
 export const getAllAttendanceByOwner = async (req, res) => {
   try {
+    console.log("coming");
+
     // Get all works owned by the user
     const works = await Work.find({ owner: req.user.userId });
 
@@ -14,21 +16,27 @@ export const getAllAttendanceByOwner = async (req, res) => {
     // Extract work IDs
     const workIds = works.map(work => work._id);
 
-    // Get all workers associated with the work IDs
-    const workers = await Worker.find({ workId: { $in: workIds, owner: req.user.userId } });
+    // Get all workers belonging to these works AND owned by the same owner
+    const workers = await Worker.find({ 
+      workId: { $in: workIds },
+      ownerId: req.user.userId
+    });
+
     const workerIds = workers.map(worker => worker._id);
 
-    // Find all attendance records for these workers
-    const attendanceRecords = await Attendance.find({ workerId: { $in: workerIds } })
+    // Find attendance for these workers
+    const attendanceRecords = await Attendance.find({ 
+      workerId: { $in: workerIds },
+      owner: req.user.userId  // extra security
+    })
       .populate('workerId', 'name phoneNumber')
       .populate('markedBy', 'name');
 
-    // Transform attendance data for the frontend
     const transformedAttendance = attendanceRecords.map(record => ({
       id: record._id,
-      workerId: record.workerId._id,
-      workerName: record.workerId.name,
-      phoneNumber: record.workerId.phoneNumber,
+      workerId: record.workerId?._id,
+      workerName: record.workerId?.name ?? "Unknown",
+      phoneNumber: record.workerId?.phoneNumber,
       workId: record.workId,
       date: record.date,
       status: record.status,
@@ -50,14 +58,21 @@ export const getAttendance = async (req, res) => {
     const { workId, workerId, date } = req.query;
     const query = {};
 
+    // Validate user before accessing req.user.userId
     if (workId) {
+      if (!req.user || !req.user.userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const work = await Work.findOne({
         _id: workId,
         owner: req.user.userId
       });
 
+      console.log("work", work);
+
       if (!work) {
-        return res.status(404).json({ message: 'Work not found' });
+        return res.status(404).json({ message: "Work not found" });
       }
 
       query.workId = workId;
@@ -67,27 +82,31 @@ export const getAttendance = async (req, res) => {
     if (date) query.date = date;
 
     const attendance = await Attendance.find(query)
-      .populate('workerId', 'name phoneNumber')
-      .populate('markedBy', 'name');
+      .populate("workerId", "name phoneNumber")
+      .populate("markedBy", "name");
 
-    // Transform attendance data to match frontend requirements
-    const transformedAttendance = attendance.map(record => ({
-      id: record._id,
-      workerId: record.workerId._id,
-      workerName: record.workerId.name,
-      workId: record.workId,
-      date: record.date,
-      status: record.status,
-      markedBy: record.markedBy?.name || 'System',
-      markedAt: record.markedAt,
-      method: record.method,
-      location: record.location
-    }));
+    const transformedAttendance = attendance.map((record) => {
+      const worker = record.workerId; // may be null
+      const markedBy = record.markedBy; // may be null
 
-    res.status(200).json(transformedAttendance);
+      return {
+        id: record._id,
+        workerId: worker?._id || null,
+        workerName: worker?.name || "Unknown",
+        workId: record.workId,
+        date: record.date,
+        status: record.status,
+        markedBy: markedBy?.name || "System",
+        markedAt: record.markedAt,
+        method: record.method,
+        location: record.location
+      };
+    });
+
+    return res.status(200).json(transformedAttendance);
   } catch (error) {
-    console.error('Get attendance error:', error);
-    res.status(500).json({ message: 'Failed to get attendance' });
+    console.error("Get attendance error:", error);
+    return res.status(500).json({ message: "Failed to get attendance" });
   }
 };
 
@@ -185,7 +204,6 @@ export const markAttendance = async (req, res) => {
     res.status(500).json({ message: 'Failed to process attendance', error });
   }
 };
-
 
 export const updateAttendance = async (req, res) => {
   try {
