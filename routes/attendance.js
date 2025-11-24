@@ -11,8 +11,12 @@ const router = express.Router();
 
 router.use(auth);
 
+// Normal attendance with filters (workId, workerId, date)
 router.get('/', getAttendance);
-router.get('/', authorize('owner'), getAllAttendanceByOwner);
+
+// All attendance belonging ONLY to the owner
+router.get('/owner', authorize('owner'), getAllAttendanceByOwner);
+
 router.post('/', authorize('owner', 'admin'), markAttendance);
 router.patch('/:id', authorize('owner', 'admin'), updateAttendance);
 
