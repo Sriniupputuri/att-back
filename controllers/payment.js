@@ -23,8 +23,8 @@ export const getPayments = async (req, res) => {
     if (workerId) query.workerId = workerId;
 
     const payments = await Payment.find(query)
-      .populate('workerId', 'userId')
-      .populate('processedBy', 'name');
+      .populate("workerId", "name phone profileImage userId")   // ⬅ NEW
+      .populate("processedBy", "name");
 
     res.status(200).json(payments);
   } catch (error) {
